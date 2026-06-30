@@ -1,0 +1,86 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model bitacora_auditoria {
+  id_bitacora   Int       @id @default(autoincrement())
+  id_usuario    Int?
+  accion        String    @db.VarChar(255)
+  ruta_endpoint String?   @db.VarChar(255)
+  fecha_accion  DateTime? @default(now()) @db.Timestamp(6)
+  detalles      String?
+  usuarios      usuarios? @relation(fields: [id_usuario], references: [id_usuario], onUpdate: NoAction)
+}
+
+model categorias_oficios {
+  id_categoria           Int                      @id @default(autoincrement())
+  nombre_oficio          String                   @unique @db.VarChar(100)
+  descripcion            String?
+  perfiles_especialistas perfiles_especialistas[]
+}
+
+model perfiles_especialistas {
+  id_perfil                  Int                 @id @default(autoincrement())
+  id_usuario                 Int?
+  id_categoria               Int?
+  telefono                   String?             @db.VarChar(20)
+  latitud                    Decimal?            @db.Decimal(10, 8)
+  longitud                   Decimal?            @db.Decimal(11, 8)
+  foto_perfil_base64         String?
+  foto_identificacion_base64 String?
+  tarifa_visita              Decimal?            @db.Decimal(10, 2)
+  perfil_verificado          Boolean?            @default(false)
+  categorias_oficios         categorias_oficios? @relation(fields: [id_categoria], references: [id_categoria], onUpdate: NoAction)
+  usuarios                   usuarios?           @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade, onUpdate: NoAction)
+  portafolios                portafolios[]
+  validaciones_ia            validaciones_ia[]
+}
+
+model portafolios {
+  id_portafolio          Int                     @id @default(autoincrement())
+  id_perfil              Int?
+  titulo_trabajo         String?                 @db.VarChar(150)
+  descripcion            String?
+  imagen_base64          String
+  fecha_subida           DateTime?               @default(now()) @db.Timestamp(6)
+  perfiles_especialistas perfiles_especialistas? @relation(fields: [id_perfil], references: [id_perfil], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model usuarios {
+  id_usuario             Int                      @id @default(autoincrement())
+  nombre_completo        String                   @db.VarChar(150)
+  correo_electronico     String                   @unique @db.VarChar(150)
+  contrasena_hash        String                   @db.VarChar(255)
+  rol                    rol_usuario
+  fecha_registro         DateTime?                @default(now()) @db.Timestamp(6)
+  activo                 Boolean?                 @default(true)
+  bitacora_auditoria     bitacora_auditoria[]
+  perfiles_especialistas perfiles_especialistas[]
+}
+
+model validaciones_ia {
+  id_validacion          Int                     @id @default(autoincrement())
+  id_perfil              Int?
+  tipo_validacion        tipo_validacion_ia
+  resultado_json         Json
+  aprobado               Boolean
+  fecha_validacion       DateTime?               @default(now()) @db.Timestamp(6)
+  perfiles_especialistas perfiles_especialistas? @relation(fields: [id_perfil], references: [id_perfil], onDelete: Cascade, onUpdate: NoAction)
+}
+
+enum rol_usuario {
+  CLIENTE
+  ESPECIALISTA
+  ADMIN
+}
+
+enum tipo_validacion_ia {
+  OCR_DOCUMENTO
+  LLM_EXAMEN
+  VISION_PORTAFOLIO
+  BIOMETRIA_FACIAL
+}
