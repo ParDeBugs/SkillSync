@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { HashingHelper } from '../../shared/helpers/hashing.helper';
 import { RegisterDto } from './dto/register.dto';
+import { rol_usuario } from '@prisma/client';
 
 @Injectable()
 export class AuthService {
@@ -11,8 +12,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
   ) {}
 
-  async register(data: RegisterDto) {
-    // No insertar el mismo correo dos veces
+async register(data: RegisterDto, rolAsignado: rol_usuario) {
     const usuarioExistente = await this.prisma.usuarios.findUnique({
       where: { correo_electronico: data.correo_electronico },
     });
@@ -28,7 +28,7 @@ export class AuthService {
         nombre_completo: data.nombre_completo,
         correo_electronico: data.correo_electronico,
         contrasena_hash: contrasenaEncriptada,
-        rol: data.rol,
+        rol: rolAsignado,
       },
     });
 

@@ -12,7 +12,4 @@ export class RegisterDto {
   @IsString()
   @MinLength(6, { message: 'La contraseña debe tener al menos 6 caracteres' })
   contrasena: string;
-
-  @IsEnum(rol_usuario, { message: 'El rol debe ser estrictamente CLIENTE, ESPECIALISTA o ADMIN' })
-  rol: rol_usuario;
 }
