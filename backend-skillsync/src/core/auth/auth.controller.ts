@@ -10,17 +10,28 @@ import { RolesGuard } from '../guards/roles.guard';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @Post('register')
-  async register(@Body() body: RegisterDto) {
-    return this.authService.register(body);
-  }
-
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(@Body() body: LoginDto) {
-    // Al usar el DTO, TypeScript ya sabe que body.correo_electronico existe y es string
     return this.authService.validarUsuario(body.correo_electronico, body.contrasena);
   }
 
+  // ENDPOINT Registro de Clientes
+  @Post('register/cliente')
+  async registerCliente(@Body() body: RegisterDto) {
+    return this.authService.register(body, 'CLIENTE');
+  }
 
+  // ENDPOINT Registro de Especialistas
+  @Post('register/especialista')
+  async registerEspecialista(@Body() body: RegisterDto) {
+    return this.authService.register(body, 'ESPECIALISTA');
+  }
+
+  @Post('register/admin')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  async registerAdmin(@Body() body: RegisterDto) {
+    return this.authService.register(body, 'ADMIN');
+  }
 }
