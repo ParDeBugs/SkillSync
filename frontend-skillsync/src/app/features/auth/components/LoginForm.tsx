@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { authService } from '../services/auth.service';
 import { useSession } from '@/app/core/services/session.service';
+import { ApiError } from '@/app/core/interceptors/http-client';
 
 export function LoginForm() {
   const router = useRouter();
@@ -32,7 +33,7 @@ export function LoginForm() {
       await refresh();
       router.push('/');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo iniciar sesión');
+      setError(err instanceof ApiError ? err.message : 'No se pudo iniciar sesión. Intenta de nuevo.');
     } finally {
       setIsSubmitting(false);
     }

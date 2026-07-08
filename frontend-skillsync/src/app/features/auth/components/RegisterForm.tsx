@@ -2,13 +2,16 @@
 
 import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { authService } from '../services/auth.service';
 import { useSession } from '@/app/core/services/session.service';
+import { ApiError } from '@/app/core/interceptors/http-client';
+
+type TipoCuenta = 'CLIENTE' | 'ESPECIALISTA';
 
 export function RegisterForm() {
   const router = useRouter();
   const { refresh } = useSession();
+  const [tipoCuenta, setTipoCuenta] = useState<TipoCuenta>('CLIENTE');
   const [nombre_completo, setNombre] = useState('');
   const [correo_electronico, setCorreo] = useState('');
   const [contrasena, setContrasena] = useState('');
@@ -16,7 +19,6 @@ export function RegisterForm() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Ya no valida el checkbox aquí: el botón se encarga de bloquear el envío
   const validate = () => {
     if (nombre_completo.trim().length < 2) return 'Ingresa tu nombre completo';
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo_electronico)) return 'Correo inválido';
@@ -32,11 +34,22 @@ export function RegisterForm() {
 
     setIsSubmitting(true);
     try {
-      await authService.registerCliente({ nombre_completo: nombre_completo.trim(), correo_electronico, contrasena });
+      const payload = { nombre_completo: nombre_completo.trim(), correo_electronico, contrasena };
+
+      if (tipoCuenta === 'CLIENTE') {
+        await authService.registerCliente(payload);
+      } else {
+        await authService.registerEspecialista(payload);
+      }
+
       await refresh();
       router.push('/');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo completar el registro');
+      if (err instanceof ApiError) {
+        setError(err.details?.length ? err.details.join(' ') : err.message);
+      } else {
+        setError('No se pudo completar el registro. Intenta de nuevo.');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -46,6 +59,41 @@ export function RegisterForm() {
 
   return (
     <form onSubmit={handleSubmit} className="flex w-full max-w-sm flex-col gap-4" noValidate>
+      <fieldset>
+        <legend className="text-sm font-medium text-slate-700">Quiero registrarme como</legend>
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => setTipoCuenta('CLIENTE')}
+            aria-pressed={tipoCuenta === 'CLIENTE'}
+            className={`rounded-lg border px-3 py-2 text-sm font-medium transition ${
+              tipoCuenta === 'CLIENTE'
+                ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
+                : 'border-slate-300 text-slate-600 hover:border-slate-400'
+            }`}
+          >
+            Cliente
+          </button>
+          <button
+            type="button"
+            onClick={() => setTipoCuenta('ESPECIALISTA')}
+            aria-pressed={tipoCuenta === 'ESPECIALISTA'}
+            className={`rounded-lg border px-3 py-2 text-sm font-medium transition ${
+              tipoCuenta === 'ESPECIALISTA'
+                ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
+                : 'border-slate-300 text-slate-600 hover:border-slate-400'
+            }`}
+          >
+            Especialista
+          </button>
+        </div>
+        {tipoCuenta === 'ESPECIALISTA' && (
+          <p className="mt-2 text-xs text-slate-500">
+            Después de crear tu cuenta, deberás completar la verificación de tu oficio.
+          </p>
+        )}
+      </fieldset>
+
       <div>
         <label htmlFor="nombre" className="text-sm font-medium text-slate-700">Nombre completo</label>
         <input
@@ -109,13 +157,6 @@ export function RegisterForm() {
       >
         {isSubmitting ? 'Creando cuenta…' : 'Crear cuenta'}
       </button>
-      
-      <p className="text-center text-sm text-slate-600">
-        ¿Ya tienes cuenta?{' '}
-        <Link href="/login" className="font-medium text-indigo-600 underline">
-          Inicia sesión aquí
-        </Link>
-      </p>
     </form>
   );
 }

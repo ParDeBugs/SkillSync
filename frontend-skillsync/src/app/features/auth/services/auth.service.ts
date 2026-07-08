@@ -1,4 +1,4 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL; // http://localhost:3000
+import { httpClient, ApiError } from '@/app/core/interceptors/http-client';
 
 export interface AuthUser {
   id: number;
@@ -12,47 +12,37 @@ interface LoginPayload {
   contrasena: string;
 }
 
-interface RegisterClientePayload {
+interface RegisterPayload {
   nombre_completo: string;
   correo_electronico: string;
   contrasena: string;
 }
 
-async function handleResponse<T>(res: Response): Promise<T> {
-  const data = await res.json().catch(() => null);
-  if (!res.ok) throw new Error(data?.message ?? 'Ocurrió un error inesperado');
-  return data as T;
-}
-
 export const authService = {
-  async login(payload: LoginPayload): Promise<{ usuario: AuthUser }> {
-    const res = await fetch(`${API_URL}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include', // envía/recibe la cookie httpOnly
-      body: JSON.stringify(payload),
-    });
-    return handleResponse(res);
+  login(payload: LoginPayload) {
+    return httpClient.post<{ usuario: AuthUser }>('/auth/login', payload);
   },
 
-  async registerCliente(payload: RegisterClientePayload): Promise<{ usuario: AuthUser }> {
-    const res = await fetch(`${API_URL}/auth/register/cliente`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify(payload),
-    });
-    return handleResponse(res);
+  registerCliente(payload: RegisterPayload) {
+    return httpClient.post<{ usuario: AuthUser }>('/auth/register/cliente', payload);
   },
 
-  async logout(): Promise<void> {
-    await fetch(`${API_URL}/auth/logout`, { method: 'POST', credentials: 'include' });
+  registerEspecialista(payload: RegisterPayload) {
+    return httpClient.post<{ usuario: AuthUser }>('/auth/register/especialista', payload);
+  },
+
+  logout() {
+    return httpClient.post<{ ok: boolean }>('/auth/logout');
   },
 
   async me(): Promise<AuthUser | null> {
-    const res = await fetch(`${API_URL}/auth/me`, { method: 'POST', credentials: 'include' });
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data.usuario;
+    try {
+      const data = await httpClient.post<{ usuario: AuthUser }>('/auth/me');
+      return data.usuario;
+    } catch (err) {
+      if (err instanceof ApiError && (err.status === 401 || err.status === 0)) return null;
+      console.error(err);
+      return null;
+    }
   },
 };
