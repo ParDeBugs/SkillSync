@@ -4,7 +4,8 @@ import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { PrismaModule } from './shared/prisma/prisma.module';
 import { AuthModule } from './core/auth/auth.module';
-
+import { UsersModule } from './features/users/users.module';
+import { SpecialistsModule } from './features/specialists/specialists.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -16,6 +17,8 @@ import { AuthModule } from './core/auth/auth.module';
       limit: 10,
     }]),
     AuthModule,
+    UsersModule,
+    SpecialistsModule,
   ],
   controllers: [],
   providers: [
